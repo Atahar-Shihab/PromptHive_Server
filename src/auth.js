@@ -4,10 +4,23 @@ import { bearer, jwt } from "better-auth/plugins";
 import { appDb, mongoClient } from "./config/mongo.js";
 import { env } from "./env.js";
 
+const usesSecureAuthUrl = env.BETTER_AUTH_URL.startsWith("https://");
+
 export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
   trustedOrigins: [env.CLIENT_URL, env.BETTER_AUTH_URL, env.SERVER_URL].filter(Boolean),
+  advanced: {
+    useSecureCookies: usesSecureAuthUrl,
+    defaultCookieAttributes: usesSecureAuthUrl
+      ? {
+          sameSite: "none",
+          secure: true,
+          httpOnly: true,
+          path: "/"
+        }
+      : undefined
+  },
   database: mongodbAdapter(appDb(), {
     client: mongoClient,
     transaction: true
