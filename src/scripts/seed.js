@@ -60,6 +60,54 @@ const seedCreators = [
   }
 ];
 
+const seedReviewers = [
+  {
+    id: "seed-reviewer-marketer",
+    name: "Tasnima Karim",
+    email: "tasnima.karim@prompthive.local",
+    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=240&q=80"
+  },
+  {
+    id: "seed-reviewer-founder",
+    name: "Rafi Mahmud",
+    email: "rafi.mahmud@prompthive.local",
+    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80"
+  },
+  {
+    id: "seed-reviewer-designer",
+    name: "Leah Gomez",
+    email: "leah.gomez@prompthive.local",
+    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=240&q=80"
+  },
+  {
+    id: "seed-reviewer-ops",
+    name: "Arman Chowdhury",
+    email: "arman.chowdhury@prompthive.local",
+    image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=240&q=80"
+  },
+  {
+    id: "seed-reviewer-research",
+    name: "Mira Sato",
+    email: "mira.sato@prompthive.local",
+    image: "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=240&q=80"
+  },
+  {
+    id: "seed-reviewer-automation",
+    name: "Jonas Weber",
+    email: "jonas.weber@prompthive.local",
+    image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=240&q=80"
+  }
+];
+
+const reviewComments = [
+  "The prompt turned a vague launch idea into usable positioning, copy blocks, and a checklist in one run.",
+  "Saved our team a full afternoon because the output structure was clear enough to paste into our workflow.",
+  "I liked that it asked for constraints and gave practical next steps instead of generic AI text.",
+  "The premium workflow felt polished, specific, and easy to adapt for a real client project.",
+  "Great balance of strategy and execution. The final output was client-ready with only small edits.",
+  "The examples were realistic, organized, and much better than the prompts I usually find online."
+];
+
 const prompts = [
   {
     title: "SaaS Launch Messaging Architect",
@@ -194,7 +242,7 @@ const prompts = [
     visibility: "public",
     copyCount: 221,
     featured: false,
-    creator: seedCreators[0]
+    creator: seedCreators[3]
   },
   {
     title: "Private Executive Strategy Memo",
@@ -209,7 +257,7 @@ const prompts = [
     visibility: "private",
     copyCount: 176,
     featured: true,
-    creator: seedCreators[0]
+    creator: seedCreators[2]
   },
   {
     title: "DALL-E Editorial Campaign Pack",
@@ -252,13 +300,15 @@ const created = await Prompt.insertMany(
   }))
 );
 
-await Review.deleteMany({ "user.email": env.DEFAULT_ADMIN_EMAIL });
+await Review.deleteMany({
+  "user.email": { $in: [env.DEFAULT_ADMIN_EMAIL, ...seedReviewers.map((item) => item.email)] }
+});
 await Review.insertMany(
-  created.slice(0, 4).map((prompt, index) => ({
+  created.slice(0, 8).map((prompt, index) => ({
     promptId: prompt._id,
-    rating: [5, 5, 4, 5][index],
-    comment: "Practical, polished, and easy to adapt for real client work.",
-    user: creator
+    rating: [5, 5, 4, 5, 4, 5, 5, 4][index],
+    comment: reviewComments[index % reviewComments.length],
+    user: seedReviewers[index % seedReviewers.length]
   }))
 );
 

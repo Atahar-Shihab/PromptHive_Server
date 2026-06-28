@@ -10,6 +10,7 @@ import { HttpError, requireFound } from "../utils/http.js";
 import { optionalAuth, requireAuth, requireRole } from "../middleware/auth.js";
 import { notifyUser } from "../services/notification.service.js";
 import { listUsersByRole } from "../services/user.service.js";
+import { env } from "../env.js";
 
 const router = Router();
 
@@ -166,11 +167,25 @@ router.get(
 router.get(
   "/top-creators",
   asyncHandler(async (_req, res) => {
+    const adminEmail = String(env.DEFAULT_ADMIN_EMAIL ?? "").toLowerCase();
     const data = await Prompt.aggregate([
       { $match: { status: "approved" } },
       {
+        $addFields: {
+          creatorEmailKey: { $toLower: { $ifNull: ["$creator.email", ""] } },
+          creatorNameKey: { $toLower: { $ifNull: ["$creator.name", ""] } }
+        }
+      },
+      {
+        $match: {
+          creatorEmailKey: { $ne: adminEmail },
+          creatorNameKey: { $ne: "prompthive admin" }
+        }
+      },
+      {
         $group: {
-          _id: "$creator.id",
+          _id: "$creatorEmailKey",
+          id: { $first: "$creator.id" },
           name: { $first: "$creator.name" },
           email: { $first: "$creator.email" },
           image: { $first: "$creator.image" },
@@ -179,7 +194,17 @@ router.get(
         }
       },
       { $sort: { copies: -1, prompts: -1 } },
-      { $limit: 6 }
+      { $limit: 6 },
+      {
+        $project: {
+          _id: "$id",
+          name: 1,
+          email: 1,
+          image: 1,
+          prompts: 1,
+          copies: 1
+        }
+      }
     ]);
     res.json(data);
   })
