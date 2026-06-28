@@ -11,6 +11,7 @@ export const mongoClient = new MongoClient(env.MONGODB_URI, mongoOptions);
 
 let clientPromise = null;
 let mongoosePromise = null;
+let appIndexPromise = null;
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -41,12 +42,66 @@ async function connectOnce() {
   }
 }
 
+async function repairLegacyBookmarkIndexes() {
+  const collection = appDb().collection("bookmarks");
+
+  let indexes = [];
+  try {
+    indexes = await collection.indexes();
+  } catch (error) {
+    if (error.codeName === "NamespaceNotFound" || error.code === 26) return;
+    console.warn(`Could not inspect bookmarks indexes: ${error.message}`);
+    return;
+  }
+
+  const legacyIndexes = indexes.filter((index) => {
+    const keys = Object.keys(index.key ?? {});
+    return index.name === "user_1_prompt_1" || index.name === "prompt_1_user_1" || (keys.includes("user") && keys.includes("prompt"));
+  });
+
+  for (const index of legacyIndexes) {
+    try {
+      await collection.dropIndex(index.name);
+      console.log(`Dropped legacy bookmarks index: ${index.name}`);
+    } catch (error) {
+      console.warn(`Could not drop legacy bookmarks index ${index.name}: ${error.message}`);
+    }
+  }
+
+  try {
+    await collection.deleteMany({
+      $and: [
+        { $or: [{ userId: { $exists: false } }, { userId: null }, { userId: "" }] },
+        { $or: [{ promptId: { $exists: false } }, { promptId: null }] },
+        { $or: [{ user: { $exists: false } }, { user: null }] },
+        { $or: [{ prompt: { $exists: false } }, { prompt: null }] }
+      ]
+    });
+  } catch (error) {
+    console.warn(`Could not clean invalid bookmark records: ${error.message}`);
+  }
+
+  try {
+    await collection.createIndex({ promptId: 1, userId: 1 }, { unique: true, name: "promptId_1_userId_1" });
+  } catch (error) {
+    console.warn(`Could not ensure bookmarks index: ${error.message}`);
+  }
+}
+
+async function ensureAppIndexes() {
+  if (!appIndexPromise) {
+    appIndexPromise = repairLegacyBookmarkIndexes();
+  }
+  await appIndexPromise;
+}
+
 export async function connectDatabase() {
   let lastError = null;
 
   for (let attempt = 1; attempt <= env.MONGODB_CONNECT_RETRIES; attempt += 1) {
     try {
       await connectOnce();
+      await ensureAppIndexes();
       if (attempt > 1) {
         console.log(`MongoDB connected after ${attempt} attempts.`);
       }
