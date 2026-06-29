@@ -58,6 +58,20 @@ async function notifyAdminsForReview(prompt) {
   );
 }
 
+async function notifyAdminsForReport(prompt, report) {
+  const admins = await listUsersByRole("admin");
+  await Promise.all(
+    admins.map((admin) =>
+      notifyUser(
+        admin.id,
+        "Prompt report submitted",
+        `${report.reporter.name} reported "${prompt.title}" for ${report.reason}.`,
+        "report"
+      )
+    )
+  );
+}
+
 function promptMatch(query, admin = false) {
   const match = {};
   if (!admin) {
@@ -293,8 +307,18 @@ router.patch(
     if (!ownsPrompt && req.authUser.role !== "admin") throw new HttpError(403, "Only the creator can update this prompt");
 
     const body = promptSchema.partial().parse(req.body);
-    Object.assign(prompt, body, { status: req.authUser.role === "admin" ? prompt.status : "pending" });
+    const needsReview = req.authUser.role !== "admin";
+    Object.assign(prompt, body, { status: needsReview ? "pending" : prompt.status });
     await prompt.save();
+    if (needsReview) {
+      await notifyAdminsForReview(prompt);
+      await notifyUser(
+        prompt.creator.id,
+        "Prompt sent for review",
+        `"${prompt.title}" was updated and is now waiting for admin approval.`,
+        "prompt"
+      );
+    }
     res.json(prompt);
   })
 );
@@ -422,6 +446,18 @@ router.post(
         email: req.authUser.email
       }
     });
+    const notifications = [notifyAdminsForReport(prompt, report)];
+    if (prompt.creator?.id && prompt.creator.id !== req.authUser.id) {
+      notifications.push(
+        notifyUser(
+          prompt.creator.id,
+          "Prompt report received",
+          `"${prompt.title}" received a ${body.reason} report and is waiting for admin review.`,
+          "report"
+        )
+      );
+    }
+    await Promise.all(notifications);
     res.status(201).json(report);
   })
 );

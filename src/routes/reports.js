@@ -28,10 +28,26 @@ router.patch(
     const report = requireFound(await Report.findByIdAndUpdate(req.params.id, body, { new: true }).lean(), "Report not found");
     const prompt = report.promptId ? await Prompt.findById(report.promptId).lean() : null;
     if (body.status === "removed" && prompt) {
+      if (prompt.creator?.id) {
+        await notifyUser(
+          prompt.creator.id,
+          "Prompt removed after report",
+          `"${prompt.title}" was removed after admin report review.`,
+          "report"
+        );
+      }
       await Prompt.findByIdAndDelete(prompt._id);
     }
     if (body.status === "warned" && prompt?.creator?.id) {
       await notifyUser(prompt.creator.id, "Creator warning", `An admin warned you about ${prompt.title}.`, "report");
+    }
+    if (body.status === "dismissed" && prompt?.creator?.id) {
+      await notifyUser(
+        prompt.creator.id,
+        "Report dismissed",
+        `An admin reviewed and dismissed the report on "${prompt.title}".`,
+        "report"
+      );
     }
     res.json(report);
   })
