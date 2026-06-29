@@ -24,7 +24,8 @@ router.patch(
     const body = z
       .object({
         name: z.string().min(2).max(80).optional(),
-        image: z.string().url().optional()
+        image: z.string().url().optional(),
+        role: z.enum(["user", "creator"]).optional()
       })
       .parse(req.body);
     const user = requireFound(await updateUserProfile(req.authUser.id, body), "User not found");

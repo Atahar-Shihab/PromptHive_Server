@@ -92,9 +92,11 @@ export async function updateUserProfile(id, profile) {
   const updates = { updatedAt: new Date() };
   const name = typeof profile.name === "string" ? profile.name.trim() : "";
   const image = typeof profile.image === "string" ? profile.image.trim() : "";
+  const role = ["user", "creator"].includes(profile.role) ? profile.role : "";
 
   if (name) updates.name = name;
   if (image) updates.image = image;
+  if (role) updates.role = role;
 
   await users().updateOne(idQuery(id), { $set: updates });
   return getUserById(id);
