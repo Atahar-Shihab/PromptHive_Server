@@ -41,6 +41,18 @@ The API is built with Express and MongoDB, and is designed to support three role
 | Server Repository | https://github.com/Atahar-Shihab/PromptHive_Server |
 | Client Repository | https://github.com/Atahar-Shihab/PromptHive_client |
 
+## Product Preview
+
+The Express API powers the deployed PromptHive marketplace, including prompt discovery, protected dashboards, moderation, payments, reports, uploads, and notifications.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Atahar-Shihab/PromptHive_client/main/docs/screenshots/landing.png" alt="PromptHive landing page powered by the Express API" width="100%" />
+</p>
+
+| Marketplace Data | Auth Flow |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/Atahar-Shihab/PromptHive_client/main/docs/screenshots/marketplace.png" alt="Marketplace prompt data from the backend API" width="100%" /> | <img src="https://raw.githubusercontent.com/Atahar-Shihab/PromptHive_client/main/docs/screenshots/auth.png" alt="Better Auth login flow connected to the API" width="100%" /> |
+
 ## API Capabilities
 
 | Area | Included |
