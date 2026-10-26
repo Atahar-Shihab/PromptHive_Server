@@ -3,6 +3,7 @@ import { env } from "../env.js";
 import { Prompt } from "../models/Prompt.js";
 import { Review } from "../models/Review.js";
 import { updateUserRole, getUserByEmail } from "../services/user.service.js";
+import { ensureDemoAccounts } from "../services/demo-users.service.js";
 
 await connectDatabase();
 const { auth } = await import("../auth.js");
@@ -30,6 +31,7 @@ if (!admin) {
   process.exit(1);
 }
 await updateUserRole(admin.id, "admin");
+await ensureDemoAccounts();
 
 const creator = {
   id: admin.id,

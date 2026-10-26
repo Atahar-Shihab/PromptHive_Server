@@ -9,6 +9,7 @@ import { toNodeHandler } from "better-auth/node";
 import { auth } from "./auth.js";
 import { assertProductionEnv, env } from "./env.js";
 import { connectDatabase, mongoSetupMessage } from "./config/mongo.js";
+import { ensureDemoAccounts } from "./services/demo-users.service.js";
 import promptsRouter from "./routes/prompts.js";
 import bookmarksRouter from "./routes/bookmarks.js";
 import reviewsRouter from "./routes/reviews.js";
@@ -75,6 +76,7 @@ app.use((error, _req, res, _next) => {
 
 try {
   await connectDatabase();
+  await ensureDemoAccounts();
 
   app.listen(env.PORT, () => {
     console.log(`PromptHive API running at ${env.SERVER_URL} on port ${env.PORT}`);
