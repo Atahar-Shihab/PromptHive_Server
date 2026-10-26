@@ -1,4 +1,10 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config();
 
 const devSecret = "dev-only-secret-change-me-please-1234567890";
 
@@ -26,7 +32,7 @@ export const env = {
   OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
   OPENAI_MODEL: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
   GEMINI_API_KEY: process.env.GEMINI_API_KEY ?? "",
-  GEMINI_MODEL: process.env.GEMINI_MODEL ?? "gemini-1.5-flash",
+  GEMINI_MODEL: process.env.GEMINI_MODEL || "gemini-2.5-flash",
   DEFAULT_ADMIN_NAME: process.env.DEFAULT_ADMIN_NAME ?? "PromptHive Admin",
   DEFAULT_ADMIN_EMAIL: process.env.DEFAULT_ADMIN_EMAIL ?? "admin@demo.com",
   DEFAULT_ADMIN_PASSWORD: process.env.DEFAULT_ADMIN_PASSWORD ?? "admin1234"

@@ -131,6 +131,52 @@ function localPromptPreview(prompt, provider = "local", reason = "PromptHive loc
   };
 }
 
+async function evaluateWithGemini(promptContent) {
+  if (!env.GEMINI_API_KEY) return null;
+  const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+  const candidateModels = [env.GEMINI_MODEL, "gemini-2.5-flash", "gemini-flash-latest"].filter(Boolean);
+  const tried = new Set();
+  for (const modelName of candidateModels) {
+    if (tried.has(modelName)) continue;
+    tried.add(modelName);
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: { responseMimeType: "application/json" }
+      });
+      const result = await model.generateContent(evaluationPrompt(promptContent));
+      const output = result.response.text();
+      const report = parseAiReport(output);
+      if (report) {
+        return { provider: "gemini", model: modelName, output: reportToText(report), report };
+      }
+    } catch (err) {
+      console.warn(`[AI Evaluator] Gemini (${modelName}) failed:`, err?.message || err);
+    }
+  }
+  return null;
+}
+
+async function evaluateWithOpenAI(promptContent) {
+  if (!env.OPENAI_API_KEY) return null;
+  try {
+    const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+    const model = env.OPENAI_MODEL === "gpt-5.5" ? "gpt-4o-mini" : env.OPENAI_MODEL;
+    const result = await openai.chat.completions.create({
+      model,
+      messages: [{ role: "user", content: evaluationPrompt(promptContent) }]
+    });
+    const output = result.choices[0]?.message?.content ?? "";
+    const report = parseAiReport(output);
+    if (report) {
+      return { provider: "openai", model, output: reportToText(report), report };
+    }
+  } catch (err) {
+    console.warn("[AI Evaluator] OpenAI failed:", err?.message || err);
+  }
+  return null;
+}
+
 router.post(
   "/test-prompt",
   requireAuth,
@@ -138,47 +184,35 @@ router.post(
     const body = z
       .object({
         prompt: z.string().min(5),
-        provider: z.enum(["openai", "gemini"]).default("openai")
+        provider: z.enum(["auto", "openai", "gemini"]).default("auto")
       })
       .parse(req.body);
 
-    if (body.provider === "gemini" && env.GEMINI_API_KEY) {
-      try {
-        const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({
-          model: env.GEMINI_MODEL,
-          generationConfig: { responseMimeType: "application/json" }
-        });
-        const result = await model.generateContent(evaluationPrompt(body.prompt));
-        const output = result.response.text();
-        const report = parseAiReport(output);
-        return res.json({ provider: "gemini", output: report ? reportToText(report) : output, report });
-      } catch (error) {
-        return res.json(localPromptPreview(body.prompt, "gemini", "Gemini was unavailable, so PromptHive ran the local prompt test engine."));
-      }
+    if (body.provider === "gemini") {
+      const geminiResult = await evaluateWithGemini(body.prompt);
+      if (geminiResult) return res.json(geminiResult);
+      const openAiResult = await evaluateWithOpenAI(body.prompt);
+      if (openAiResult) return res.json(openAiResult);
+    } else if (body.provider === "openai") {
+      const openAiResult = await evaluateWithOpenAI(body.prompt);
+      if (openAiResult) return res.json(openAiResult);
+      const geminiResult = await evaluateWithGemini(body.prompt);
+      if (geminiResult) return res.json(geminiResult);
+    } else {
+      // Auto: prefer Gemini (verified active credentials), fallback to OpenAI
+      const geminiResult = await evaluateWithGemini(body.prompt);
+      if (geminiResult) return res.json(geminiResult);
+      const openAiResult = await evaluateWithOpenAI(body.prompt);
+      if (openAiResult) return res.json(openAiResult);
     }
 
-    if (env.OPENAI_API_KEY) {
-      try {
-        const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
-        const result = await openai.responses.create({
-          model: env.OPENAI_MODEL,
-          input: evaluationPrompt(body.prompt)
-        });
-        const report = parseAiReport(result.output_text);
-        return res.json({ provider: "openai", output: report ? reportToText(report) : result.output_text, report });
-      } catch (error) {
-        return res.json(
-          localPromptPreview(
-            body.prompt,
-            "openai",
-            "OpenAI was unavailable, so PromptHive ran the local prompt test engine."
-          )
-        );
-      }
-    }
-
-    res.json(localPromptPreview(body.prompt, "mock", "API key is not configured, so PromptHive returned a local preview."));
+    res.json(
+      localPromptPreview(
+        body.prompt,
+        "mock",
+        "Live AI evaluator is currently busy or credentials need top-up. PromptHive generated an instant heuristic QA analysis."
+      )
+    );
   })
 );
 
