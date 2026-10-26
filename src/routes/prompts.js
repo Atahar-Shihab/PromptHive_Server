@@ -91,8 +91,11 @@ function promptMatch(query, admin = false) {
   if (query.aiTool) match.aiTool = query.aiTool;
   if (query.difficulty) match.difficulty = query.difficulty;
   if (query.search) {
-    const regex = new RegExp(String(query.search), "i");
-    match.$or = [{ title: regex }, { tags: regex }, { aiTool: regex }, { description: regex }];
+    const escaped = String(query.search).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (escaped) {
+      const regex = new RegExp(escaped, "i");
+      match.$or = [{ title: regex }, { tags: regex }, { aiTool: regex }, { description: regex }];
+    }
   }
   return match;
 }
@@ -245,25 +248,26 @@ router.get(
 
 router.get(
   "/:id",
-  requireAuth,
+  optionalAuth,
   asyncHandler(async (req, res) => {
     const prompt = requireFound(await Prompt.findById(objectId(req.params.id)).lean(), "Prompt not found");
     const reviews = await Review.find({ promptId: prompt._id }).sort({ createdAt: -1 }).lean();
-    const isBookmarked = Boolean(
-      await Bookmark.exists({ promptId: prompt._id, userId: req.authUser.id })
-    );
+    const isBookmarked = req.authUser?.id
+      ? Boolean(await Bookmark.exists({ promptId: prompt._id, userId: req.authUser.id }))
+      : false;
     const canAccess =
       prompt.visibility === "public" ||
-      req.authUser.subscription === "premium" ||
-      req.authUser.role === "admin" ||
-      prompt.creator.id === req.authUser.id;
+      (req.authUser &&
+        (req.authUser.subscription === "premium" ||
+          req.authUser.role === "admin" ||
+          prompt.creator.id === req.authUser.id));
 
     res.json({
       ...prompt,
       content: canAccess ? prompt.content : premiumLockedContent(prompt),
       reviews,
       isBookmarked,
-      canAccess,
+      canAccess: Boolean(canAccess),
       locked: !canAccess,
       avgRating: reviews.length
         ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length

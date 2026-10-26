@@ -21,6 +21,7 @@ export const env = {
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? "",
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? "",
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ?? "",
+  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET ?? "",
   PREMIUM_PRICE_USD: Number(process.env.PREMIUM_PRICE_USD ?? 5),
   OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
   OPENAI_MODEL: process.env.OPENAI_MODEL ?? "gpt-4o-mini",

@@ -40,6 +40,7 @@ app.use(compression());
 
 app.all("/api/auth/*", toNodeHandler(auth));
 
+app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "2mb" }));
 app.use("/uploads", express.static(path.resolve(__dirname, "../uploads")));
 

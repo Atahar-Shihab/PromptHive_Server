@@ -145,7 +145,10 @@ router.post(
     if (body.provider === "gemini" && env.GEMINI_API_KEY) {
       try {
         const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: env.GEMINI_MODEL });
+        const model = genAI.getGenerativeModel({
+          model: env.GEMINI_MODEL,
+          generationConfig: { responseMimeType: "application/json" }
+        });
         const result = await model.generateContent(evaluationPrompt(body.prompt));
         const output = result.response.text();
         const report = parseAiReport(output);
