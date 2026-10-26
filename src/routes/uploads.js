@@ -1,4 +1,5 @@
 import { Router } from "express";
+import fs from "fs";
 import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -8,6 +9,10 @@ import { env } from "../env.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const uploadDir = path.resolve(__dirname, "../../uploads");
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const storage = multer.diskStorage({
   destination: uploadDir,

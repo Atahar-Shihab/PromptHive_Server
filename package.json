@@ -1,7 +1,7 @@
 {
   "name": "prompthive-server",
   "version": "1.0.0",
-  "description": "Express API for the AI Prompt Sharing and Marketplace Platform assignment.",
+  "description": "High-performance Express API for PromptHive - AI Prompt Sharing & Marketplace Platform",
   "type": "module",
   "main": "src/index.js",
   "scripts": {

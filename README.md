@@ -184,20 +184,15 @@ http://localhost:5000
 | `npm run start` | Start production server |
 | `npm run seed` | Create demo admin, creators, prompts, reviews, and premium data |
 
-## Demo Admin
+## Demo Accounts (Auto-seeded on Server Boot)
 
-Run the seed script first:
+The server automatically ensures demo accounts exist on boot without overriding existing custom data:
 
-```bash
-npm run seed
-```
-
-Then sign in with:
-
-```text
-Email: admin@demo.com
-Password: admin1234
-```
+| Role | Email | Password | Scope & Permissions |
+| :--- | :--- | :--- | :--- |
+| **👑 Admin** | `admin@demo.com` | `admin1234` | Full moderation, prompt approvals/rejections, payment logs, user roles & analytics |
+| **🎨 Creator** | `creator@demo.com` | `creator1234` | Creator tools, publish prompt workflows, monitor copies, ratings & performance |
+| **🚀 Buyer / Pro** | `user@demo.com` | `user1234` | Explore public & private prompts, bookmark, copy workflows, write reviews |
 
 ## API Route Overview
 
