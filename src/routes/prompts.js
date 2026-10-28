@@ -250,7 +250,12 @@ router.get(
   "/:id",
   optionalAuth,
   asyncHandler(async (req, res) => {
-    const prompt = requireFound(await Prompt.findById(objectId(req.params.id)).lean(), "Prompt not found");
+    const prompt = requireFound(
+      await Prompt.findById(objectId(req.params.id))
+        .populate("forkedFrom", "title creator category aiTool")
+        .lean(),
+      "Prompt not found"
+    );
     const reviews = await Review.find({ promptId: prompt._id }).sort({ createdAt: -1 }).lean();
     const isBookmarked = req.authUser?.id
       ? Boolean(await Bookmark.exists({ promptId: prompt._id, userId: req.authUser.id }))
@@ -373,14 +378,36 @@ router.post(
       source.creator.id === req.authUser.id;
     if (!canAccess) throw new HttpError(402, "Subscribe to Premium to fork this prompt.");
 
+    const title = typeof req.body?.title === "string" && req.body.title.trim()
+      ? req.body.title.trim().slice(0, 120)
+      : `${source.title} (Remix)`;
+    const description = typeof req.body?.description === "string" && req.body.description.trim()
+      ? req.body.description.trim()
+      : source.description;
+    const content = typeof req.body?.content === "string" && req.body.content.trim()
+      ? req.body.content.trim()
+      : source.content;
+    const category = typeof req.body?.category === "string" && req.body.category.trim()
+      ? req.body.category.trim()
+      : source.category;
+    const aiTool = typeof req.body?.aiTool === "string" && req.body.aiTool.trim()
+      ? req.body.aiTool.trim()
+      : source.aiTool;
+    const difficulty = typeof req.body?.difficulty === "string" && req.body.difficulty.trim()
+      ? req.body.difficulty.trim()
+      : source.difficulty;
+    const tags = Array.isArray(req.body?.tags) && req.body.tags.length
+      ? req.body.tags.map((t) => String(t).trim().toLowerCase()).filter(Boolean)
+      : source.tags;
+
     const fork = await Prompt.create({
-      title: `${source.title} (Fork)`,
-      description: source.description,
-      content: source.content,
-      category: source.category,
-      aiTool: source.aiTool,
-      tags: source.tags,
-      difficulty: source.difficulty,
+      title,
+      description,
+      content,
+      category,
+      aiTool,
+      tags,
+      difficulty,
       thumbnailUrl: source.thumbnailUrl,
       visibility: "public",
       copyCount: 0,
